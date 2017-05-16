@@ -11,12 +11,13 @@ To load these `config-file.php` script:
 
 ```php
 <?php
-/** @var string $parameter Value passed by runner */
+/* @var $this SomeObject */
 
 return [
     // your config
     'some-element' => $parameter,
     'another-element' => $anotherParameter,
+    'element-by-method-call' => $this->getConfigElement(),
 ];
 ```
 
@@ -26,7 +27,7 @@ Use ScriptRunner below instead of raw `require` statement.
 $config = ScriptRunner::which()->requires('path/to/config-file.php')->with([
     'parameter' => '...',
     'anotherParameter' => '...',
-])->run();
+])->binding($someObject)->run();
 ```
 
 ## Features
