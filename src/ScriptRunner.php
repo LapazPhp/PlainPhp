@@ -1,5 +1,6 @@
 <?php
 namespace Lapaz\PlainPhp;
+
 use Lapaz\PlainPhp\Exception\ScriptNotFoundException;
 use Lapaz\PlainPhp\Exception\ScriptNotSpecifiedException;
 
@@ -136,10 +137,11 @@ class ScriptRunner
             throw new ScriptNotSpecifiedException('File was not specified.');
         }
 
+        if ($this->statement[0] != '@' && !is_file($this->filename)) {
+            throw new ScriptNotFoundException('File not exists: ' . $this->filename);
+        }
+
         $runner = function ($_statement_, $_filename_, $_vars_) {
-            if ($_statement_[0] != '@' && !is_file($_filename_)) {
-                throw new ScriptNotFoundException('File not exists: ' . $_filename_);
-            }
             extract($_vars_);
             $_ = null;
             eval('$_ = ' . sprintf($_statement_, '$_filename_') . ';');
