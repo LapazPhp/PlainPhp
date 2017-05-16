@@ -3,55 +3,52 @@ namespace Lapaz\PlainPhp;
 
 class ScriptRunnerTest extends \PHPUnit_Framework_TestCase
 {
-    public function testDoRequire()
+    public function testWhichMethod()
     {
-        $result = ScriptRunner::create()->doRequire(__DIR__ . '/scripts/return-1.php');
-        $this->assertEquals(1, $result);
-    }
-
-    public function testDoInclude()
-    {
-        $result = ScriptRunner::create()->doInclude(__DIR__ . '/scripts/return-1.php');
-        $this->assertEquals(1, $result);
+        $this->assertInstanceOf(ScriptRunner::class, ScriptRunner::which());
     }
 
     /**
-     * @expectedException \InvalidArgumentException
-     * @expectedExceptionMessageRegExp /^File not exists:/
+     * @expectedException \Lapaz\PlainPhp\Exception\ScriptNotSpecifiedException
      */
-    public function testDoRequireMissing()
+    public function testTargetFileNameUnspecified()
     {
-        ScriptRunner::create()->doRequire(__DIR__ . '/scripts/__missing-file__.php');
+        (new ScriptRunner())->run();
+    }
+
+    /**
+     * @expectedException \Lapaz\PlainPhp\Exception\ScriptNotFoundException
+     */
+    public function testRequireMissingFile()
+    {
+        ScriptRunner::which()->requires(__DIR__ . '/scripts/__missing-file__.php')->run();
         $this->fail();
     }
 
-    public function testDoIncludeMissing()
+    public function testIncludeMissingFile()
     {
-        $result = ScriptRunner::create()->doInclude(__DIR__ . '/scripts/__missing-file__.php');
+        $result = ScriptRunner::which()->includes(__DIR__ . '/scripts/__missing-file__.php')->run();
         $this->assertFalse($result);
     }
 
-    public function testDoRequireWithVars()
+    public function testWithVars()
     {
-        $result = ScriptRunner::create()->with([
+        $result = ScriptRunner::which()->requires(__DIR__ . '/scripts/return-foo-bar.php')->with([
             'foo' => 1,
             'bar' => 2,
-        ])->doRequire(__DIR__ . '/scripts/return-foo-bar.php');
+        ])->run();
         $this->assertEquals([1, 2], $result);
     }
 
-    public function testDoIncludeWithVars()
+    public function testWithObject()
     {
-        $result = ScriptRunner::create()->with([
-            'foo' => 1,
-            'bar' => 2,
-        ])->doInclude(__DIR__ . '/scripts/return-foo-bar.php');
-        $this->assertEquals([1, 2], $result);
+        $result = ScriptRunner::which()->requires(__DIR__ . '/scripts/return-this.php')->binding($this)->run();
+        $this->assertSame($this, $result);
     }
 
-    public function testDoRequireWithDifferentContext()
+    public function testBranchingContext()
     {
-        $prototypeRunner = ScriptRunner::create()->with(['foo' => 1]);
+        $prototypeRunner = (new ScriptRunner())->with(['foo' => 1]);
 
         $runner1 = $prototypeRunner->with(['bar' => 1]);
         $runner2 = $prototypeRunner->with(['bar' => 2]);
@@ -64,20 +61,8 @@ class ScriptRunnerTest extends \PHPUnit_Framework_TestCase
         $this->assertNotSame($runner1, $runner3);
         $this->assertNotSame($runner2, $runner3);
 
-        $this->assertEquals([1, 1], $runner1->doRequire(__DIR__ . '/scripts/return-foo-bar.php'));
-        $this->assertEquals([1, 2], $runner2->doRequire(__DIR__ . '/scripts/return-foo-bar.php'));
-        $this->assertSame($this, $runner3->doRequire(__DIR__ . '/scripts/return-this.php'));
-    }
-
-    public function testDoRequireWithBoundObject()
-    {
-        $result = ScriptRunner::create()->binding($this)->doRequire(__DIR__ . '/scripts/return-this.php');
-        $this->assertSame($this, $result);
-    }
-
-    public function testDoIncludeWithBoundObject()
-    {
-        $result = ScriptRunner::create()->binding($this)->doInclude(__DIR__ . '/scripts/return-this.php');
-        $this->assertSame($this, $result);
+        $this->assertEquals([1, 1], $runner1->requires(__DIR__ . '/scripts/return-foo-bar.php')->run());
+        $this->assertEquals([1, 2], $runner2->requires(__DIR__ . '/scripts/return-foo-bar.php')->run());
+        $this->assertSame($this, $runner3->requires(__DIR__ . '/scripts/return-this.php')->run());
     }
 }

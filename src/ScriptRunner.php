@@ -1,17 +1,29 @@
 <?php
 namespace Lapaz\PlainPhp;
+use Lapaz\PlainPhp\Exception\ScriptNotFoundException;
+use Lapaz\PlainPhp\Exception\ScriptNotSpecifiedException;
 
 /**
  * ScriptRunner is external PHP script runner safer than `extract` and `require` way.
  */
 class ScriptRunner
 {
+    const STATEMENT_REQUIRE = 'require %s';
+    const STATEMENT_INCLUDE = '@include %s';
+
     /**
-     * The object that evaluated by `$this` in script.
+     * Target file name.
      *
-     * @var object|null
+     * @var string|null
      */
-    protected $boundedObject = null;
+    protected $filename;
+
+    /**
+     * Execution statement template.
+     *
+     * @var string
+     */
+    protected $statement;
 
     /**
      * Variables extracted to script.
@@ -21,13 +33,68 @@ class ScriptRunner
     protected $vars = [];
 
     /**
-     * Simple static factory.
+     * The object that evaluated by `$this` in script.
      *
-     * @return static New instance of ScriptRunner.
+     * @var object|null
      */
-    public static function create()
+    protected $boundObject = null;
+
+    /**
+     * ScriptRunner constructor.
+     * All parameters of this constructor are optional to determine them later.
+     *
+     * @param string|null $filename External PHP file name.
+     * @param array $vars Key => value pair of variables extracted to script.
+     * @param object|null $boundObject Object assumed as `$this` in evaluated script.
+     */
+    public function __construct($filename = null, $vars = [], $boundObject = null)
+    {
+        $this->filename = $filename;
+        $this->statement = static::STATEMENT_REQUIRE;
+        $this->vars = $vars;
+        $this->boundObject = $boundObject;
+    }
+
+    /**
+     * Utility factory to use runner instance like DSL.
+     *
+     * ```
+     * ScriptRunner::which()->includes('some/file.php')->with(['param' => 1])->run();
+     * ```
+     *
+     * @return static ScriptRunner instance.
+     */
+    public static function which()
     {
         return new static();
+    }
+
+    /**
+     * Returns new instance to execute given file with `require` statement.
+     *
+     * @param string $filename target file name.
+     * @return static Cloned instance of ScriptRunner.
+     */
+    public function requires($filename)
+    {
+        $that = clone $this;
+        $that->filename = $filename;
+        $that->statement = static::STATEMENT_REQUIRE;
+        return $that;
+    }
+
+    /**
+     * Returns new instance to execute given file with `@include` statement.
+     *
+     * @param string $filename target file name.
+     * @return static Cloned instance of ScriptRunner.
+     */
+    public function includes($filename)
+    {
+        $that = clone $this;
+        $that->filename = $filename;
+        $that->statement = static::STATEMENT_INCLUDE;
+        return $that;
     }
 
     /**
@@ -39,7 +106,7 @@ class ScriptRunner
     public function binding($object)
     {
         $that = clone $this;
-        $that->boundedObject = $object;
+        $that->boundObject = $object;
         return $that;
     }
 
@@ -57,41 +124,21 @@ class ScriptRunner
     }
 
     /**
-     * Executes require statement and returns result.
-     * If file was missing this method throws `InvalidArgumentException`.
+     * Executes the file and returns result.
+     * If file was actually missing and execution statement without `@`, this method
+     * throws `ScriptNotFoundException` (inherited from `RuntimeException`).
      *
-     * @param string $filename External PHP file name.
      * @return mixed Result returned from external script.
      */
-    public function doRequire($filename)
+    public function run()
     {
-        return $this->_run($filename,'require %s');
-    }
+        if ($this->filename === null) {
+            throw new ScriptNotSpecifiedException('File was not specified.');
+        }
 
-    /**
-     * Executes include statement with `@` and returns result.
-     * If file was missing this method returns `false`.
-     *
-     * @param string $filename External PHP file name.
-     * @return mixed Result returned from external script.
-     */
-    public function doInclude($filename)
-    {
-        return $this->_run($filename,'@include %s');
-    }
-
-    /**
-     * Internal implementation of require and include.
-     *
-     * @param string $filename External PHP file name.
-     * @param string $statement `printf` form template to evaluated statement.
-     * @return mixed Result returned from external script.
-     */
-    public function _run($filename, $statement = 'require %s')
-    {
         $runner = function ($_statement_, $_filename_, $_vars_) {
             if ($_statement_[0] != '@' && !is_file($_filename_)) {
-                throw new \InvalidArgumentException('File not exists: ' . $_filename_);
+                throw new ScriptNotFoundException('File not exists: ' . $_filename_);
             }
             extract($_vars_);
             $_ = null;
@@ -99,36 +146,10 @@ class ScriptRunner
             return $_;
         };
 
-        if ($this->boundedObject) {
-            $runner = $runner->bindTo($this->boundedObject);
+        if ($this->boundObject) {
+            $runner = $runner->bindTo($this->boundObject);
         }
 
-        return $runner($statement, $filename, $this->vars);
-    }
-
-    /**
-     * Utility method for instant running of `doRequire()`.
-     *
-     * @param string $filename External PHP file name.
-     * @param array $vars Key => value pair of variables extracted to script
-     * @param object|null $boundObject Object assumed as `$this` in evaluated script.
-     * @return mixed Result returned from external script.
-     */
-    public static function doRequireWithVars($filename, $vars = [], $boundObject = null)
-    {
-        return static::create()->with($vars)->binding($boundObject)->doRequire($filename);
-    }
-
-    /**
-     * Utility method for instant running of `doInclude()`.
-     *
-     * @param string $filename External PHP file name.
-     * @param array $vars Key => value pair of variables extracted to script
-     * @param object|null $boundObject Object assumed as `$this` in evaluated script.
-     * @return mixed Result returned from external script.
-     */
-    public static function doIncludeWithVars($filename, $vars = [], $boundObject = null)
-    {
-        return static::create()->with($vars)->binding($boundObject)->doInclude($filename);
+        return $runner($this->statement, $this->filename, $this->vars);
     }
 }

@@ -7,23 +7,7 @@ Plain PHP script file runner that safer than `expand()` and `require` way.
 
 ## Quick Start
 
-```php
-$config = \Lapaz\PlainPhp\ScriptRunner::create()->with([
-    'parameter' => '...',
-    'anotherParameter' => '...',
-])->doRequire('path/to/config-file.php');
-```
-
-or
-
-```php
-$config = \Lapaz\PlainPhp\ScriptRunner::doRequireWithVars('path/to/config-file.php', [
-    'parameter' => '...',
-    'anotherParameter' => '...',
-]);
-```
-
-`config-file.php`
+To load these `config-file.php` script:
 
 ```php
 <?php
@@ -35,8 +19,18 @@ return [
     'another-element' => $anotherParameter,
 ];
 ```
+
+Use ScriptRunner below instead of raw `require` statement.
+
+```php
+$config = ScriptRunner::which()->requires('path/to/config-file.php')->with([
+    'parameter' => '...',
+    'anotherParameter' => '...',
+])->run();
+```
+
 ## Features
 
 - Closed and safer evaluation than raw `require` or `include`
-- Binding any object to `$this` variable
+- Binding any object as `$this` variable in target file
 - Immutable and branchable variable bound context
