@@ -40,6 +40,18 @@ class ScriptRunnerTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals([1, 2], $result);
     }
 
+    public function testConstructor()
+    {
+        $result = (new ScriptRunner(__DIR__ . '/scripts/return-foo-bar.php', [
+            'foo' => 1,
+            'bar' => 2,
+        ]))->run();
+        $this->assertEquals([1, 2], $result);
+
+        $result = (new ScriptRunner(__DIR__ . '/scripts/return-this.php', [], $this))->run();
+        $this->assertSame($this, $result);
+    }
+
     public function testWithObject()
     {
         $result = ScriptRunner::which()->requires(__DIR__ . '/scripts/return-this.php')->binding($this)->run();
