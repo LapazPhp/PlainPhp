@@ -106,6 +106,9 @@ class ScriptRunner
      */
     public function binding($object)
     {
+        if (!($object === null || is_object($object))) {
+            throw new \InvalidArgumentException('The object assumed to $this must be an object or null');
+        }
         $that = clone $this;
         $that->boundObject = $object;
         return $that;
@@ -141,17 +144,19 @@ class ScriptRunner
             throw new ScriptNotFoundException('File not exists: ' . $this->filename);
         }
 
-        $runner = function ($_statement_, $_filename_, $_vars_) {
-            extract($_vars_);
+        $__ = $this;
+
+        $closure = function () use ($__) {
+            extract($__->vars);
             $_ = null;
-            eval('$_ = ' . sprintf($_statement_, '$_filename_') . ';');
+            eval('$_ = ' . sprintf($__->statement, '$__->filename') . ';');
             return $_;
         };
 
         if ($this->boundObject) {
-            $runner = $runner->bindTo($this->boundObject);
+            $closure = $closure->bindTo($this->boundObject);
         }
 
-        return $runner($this->statement, $this->filename, $this->vars);
+        return $closure();
     }
 }

@@ -46,6 +46,22 @@ class ScriptRunnerTest extends \PHPUnit_Framework_TestCase
         $this->assertSame($this, $result);
     }
 
+    public function testWithoutObject()
+    {
+        $runner = ScriptRunner::which()->requires(__DIR__ . '/scripts/return-this.php');
+        $result = $runner->run();
+        $this->assertSame($runner, $result);
+    }
+
+    /**
+     * @expectedException \InvalidArgumentException
+     */
+    public function testWithNonObject()
+    {
+        /** @noinspection PhpParamsInspection */
+        ScriptRunner::which()->binding('non object');
+    }
+
     public function testBranchingContext()
     {
         $prototypeRunner = (new ScriptRunner())->with(['foo' => 1]);
