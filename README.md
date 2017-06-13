@@ -11,7 +11,7 @@ To load these `config-file.php` script:
 
 ```php
 <?php
-/* @var $this SomeObject */
+/** @var $this SomeObject */
 
 return [
     // your config
