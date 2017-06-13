@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/LapazPhp/PlainPhp.svg?branch=master)](https://travis-ci.org/LapazPhp/PlainPhp)
 
-Plain PHP script file runner that safer than `expand()` and `require` way.
+Plain PHP script file runner that safer than `extract()` and `require` way.
 
 
 ## Quick Start
