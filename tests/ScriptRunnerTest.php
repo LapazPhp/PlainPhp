@@ -1,7 +1,9 @@
 <?php
 namespace Lapaz\PlainPhp;
 
-class ScriptRunnerTest extends \PHPUnit_Framework_TestCase
+use PHPUnit\Framework\TestCase;
+
+class ScriptRunnerTest extends TestCase
 {
     public function testWhichMethod()
     {
